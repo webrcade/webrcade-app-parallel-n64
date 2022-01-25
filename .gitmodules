@@ -1,0 +1,4 @@
+[submodule "modules/N64Wasm"]
+	path = modules/N64Wasm
+	url = https://github.com/raz0red/N64Wasm.git
+	branch = webrcade
