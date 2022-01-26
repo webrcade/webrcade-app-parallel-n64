@@ -3,59 +3,51 @@ import {
   AppWrapper,
   Controller, 
   Controllers, 
-  DefaultKeyCodeToControlMapping,
+  KeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
   CIDS,
+  KCODES,
   LOG  
 } from "@webrcade/app-common"
 
-// class ButtonMapping {
-//   constructor(id, joy, cid) {
-//     this.id = id;
-//     this.joy = joy;
-//     this.cid = cid;
-//     this.down = false;
-//   }    
-// }
+
+const UP      = 0x0001;
+const DOWN    = 0x0002;
+const LEFT    = 0x0004;
+const RIGHT   = 0x0008;
+const START   = 0x0010;
+const R_KEY   = 0x0020;
+const L_KEY   = 0x0040;
+const Z_KEY   = 0x0080;
+const A_KEY   = 0x0100;
+const B_KEY   = 0x0200;
+const CL_KEY  = 0x0400;
+const CR_KEY  = 0x0800;
+const CU_KEY  = 0x1000;
+const CD_KEY  = 0x2000;
+
+class N64KeyCodeToControlMapping extends KeyCodeToControlMapping {
+  constructor() {
+    super({
+      [KCODES.ENTER]: CIDS.START,
+      [KCODES.ESCAPE]: CIDS.ESCAPE
+    });
+  }
+}
+
+window.audioCallback = null;
 
 export class Emulator extends AppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
 
-    // this.port2 = port2;
     this.n64module = null;
     this.romBytes = null;
     this.romMd5 = null;
     this.romName = null;
     this.pal = null;
     this.saveStatePath = null;
-
-    // const bmaps = [];
-    // this.bmaps = bmaps;
-    // for(let i = 0; i < this.controllerCount; i++) {
-    //   const b = i * 12;
-    //   bmaps.push(new ButtonMapping(b+0, i, CIDS.RIGHT));
-    //   bmaps.push(new ButtonMapping(b+1, i, CIDS.LEFT));
-    //   bmaps.push(new ButtonMapping(b+2, i, CIDS.DOWN));
-    //   bmaps.push(new ButtonMapping(b+3, i, CIDS.UP));
-    //   bmaps.push(new ButtonMapping(b+4, i, CIDS.START));
-    //   bmaps.push(new ButtonMapping(b+5, i, CIDS.SELECT));
-    //   bmaps.push(new ButtonMapping(b+6, i, CIDS.B));
-    //   bmaps.push(new ButtonMapping(b+7, i, CIDS.A));
-    //   bmaps.push(new ButtonMapping(b+8, i, CIDS.Y));
-    //   bmaps.push(new ButtonMapping(b+9, i, CIDS.X));
-    //   bmaps.push(new ButtonMapping(b+10, i, CIDS.LBUMP));
-    //   bmaps.push(new ButtonMapping(b+11, i, CIDS.RBUMP));
-    // }    
-    // const controllers = this.controllers;
-    // this.bcheck = map => {
-    //   const down = controllers.isControlDown(map.joy, map.cid);
-    //   if (down !== map.down) {
-    //     window.Module._report_button(map.id, down);
-    //     map.down = down;
-    //   };
-    // }
   }
 
   SRAM_FILE = '/rom.srm';
@@ -74,10 +66,16 @@ export class Emulator extends AppWrapper {
     LOG.info('name: ' + this.romName);
     LOG.info('md5: ' + this.romMd5);
     LOG.info('pal: ' + this.pal);
-  }
+  }  
+
+  createControllers() {
+    return new Controllers([
+      new Controller(new N64KeyCodeToControlMapping())
+    ]);
+  }  
 
   createAudioProcessor() {
-    return new ScriptAudioProcessor(2, 44100).setDebug(this.debug);
+    return new ScriptAudioProcessor(2, 44100).setDebug(false /*this.debug*/);
   }
 
   async onShowPauseMenu() {
@@ -85,11 +83,15 @@ export class Emulator extends AppWrapper {
   }
 
   pollControls() {
-    const { controllers, bmaps, bcheck } = this;
+    const { controllers } = this;
     
     controllers.poll();
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 1; i++) {
+      let input = 0;
+      let axisX = 0;
+      let axisY = 0;
+
       if (controllers.isControlDown(i, CIDS.ESCAPE)) {
         if (this.pause(true)) {
           controllers.waitUntilControlReleased(i, CIDS.ESCAPE)
@@ -97,9 +99,53 @@ export class Emulator extends AppWrapper {
           return;
         }
       }
-    }
+      if (controllers.isControlDown(i, CIDS.UP, false)) {
+        input |= UP;
+      }
+      else if (controllers.isControlDown(i, CIDS.DOWN, false)) {
+        input |= DOWN;
+      }
+      if (controllers.isControlDown(i, CIDS.RIGHT, false)) {
+        input |= RIGHT;
+      }
+      else if (controllers.isControlDown(i, CIDS.LEFT, false)) {
+        input |= LEFT;
+      }
+      if (controllers.isControlDown(i, CIDS.START)) {
+        input |= START;
+      }
+      if (controllers.isControlDown(i, CIDS.A)) {
+        input |= A_KEY;
+      }
+      if (controllers.isControlDown(i, CIDS.X)) {
+        input |= B_KEY;
+      }
+      if (controllers.isControlDown(i, CIDS.LBUMP)) {
+        input |= L_KEY;
+      }
+      if (controllers.isControlDown(i, CIDS.RBUMP)) {
+        input |= R_KEY;
+      }
+      if (controllers.isControlDown(i, CIDS.LTRIG)) {
+        input |= Z_KEY;
+      }      
+      if (controllers.isAxisLeft(i, 1)) {
+        input |= CL_KEY;
+      }            
+      if (controllers.isAxisRight(i, 1)) {
+        input |= CR_KEY;
+      }            
+      if (controllers.isAxisUp(i, 1)) {
+        input |= CU_KEY;
+      }            
+      if (controllers.isAxisDown(i, 1)) {
+        input |= CD_KEY;
+      }            
+      axisX = (controllers.getAxisValue(i, 0, true) * 0x7FFF) | 0;
+      axisY = (controllers.getAxisValue(i, 0, false) * 0x7FFF) | 0;
 
-    // bmaps.forEach(bcheck);
+      this.n64module._updateControls(input, axisX, axisY);
+    }
   }
                              
   loadEmscriptenModule() {
@@ -110,28 +156,22 @@ export class Emulator extends AppWrapper {
       const script = document.createElement('script');
       document.body.appendChild(script);
 
-      window.Module = {
-        preRun: [],
-        postRun: [],
-        onAbort: msg => app.exit(msg),
-        onExit: () => app.exit()
-      }  
-
       script.src = isIos()? 'js/n64wasm.js' : 'js/n64wasm-vbo.js';
-      script.async = true;      
+      script.async = false;      
       script.onerror = () => {
         reject("An error occurred attempting to load the N64 engine.");
       }
       script.onload = () => {
         LOG.info('Script loaded.');
         if (window.n64) {
-          window.n64().then(n64module => {
-            n64module.onAbort = msg => app.exit(msg);
-            n64module.onExit = () => app.exit();
-            this.n64module = n64module;            
-            console.log(n64module);
-            resolve();
-          });
+          window.n64()
+            .then(n64module => {
+              n64module.onAbort = msg => app.exit(msg);
+              n64module.onExit = () => app.exit();
+              this.n64module = n64module;
+              console.log(n64module);
+              resolve();
+            });
         } else {
           reject("An error occurred attempting to load the N64 engine.");
         }
@@ -141,6 +181,9 @@ export class Emulator extends AppWrapper {
 
   async destroy() {
     console.log('destroy start')
+    if (this.audioProcessor) {
+      this.audioProcessor.pause(true);
+    }
     console.log('destroy end')
   }
 
@@ -213,6 +256,7 @@ export class Emulator extends AppWrapper {
       const filename = "custom.v64";
       const u8array = new Uint8Array(romBytes);
       FS.writeFile(filename, u8array);
+
       n64module.callMain([filename]);
 
       // Determine PAL mode      
@@ -221,7 +265,7 @@ export class Emulator extends AppWrapper {
 
       // Create display loop
       this.displayLoop = new DisplayLoop(
-        ((isPal ? 50 : (60.13)) / 2), 
+        ((isPal ? 50 : 60) / 1), // 60.13
         false, debug);
 
       this.displayLoop.setDebugCallback((msg) => {        
@@ -229,36 +273,21 @@ export class Emulator extends AppWrapper {
       });
       
       // Audio configuration
-      this.audioBufferResampled = new Int16Array(
-        n64module.HEAP16.buffer, n64module._getSoundBufferResampledAddress(), 64000);
-      this.audioWritePosition = 0;
-      this.audioReadPosition = 0;  
+      let audioArray = null;
+      window.audioCallback = (offset, length) => {        
+        audioArray = new Int16Array(n64module.HEAP16.buffer, offset, 4096);
+        this.audioProcessor.storeSoundCombinedInput(audioArray, 2, length, 0, 32768);
+      }
 
       // Start the audio processor
-      this.audioProcessor.start();
+      this.audioProcessor.start();      
 
-      // Start the display loop
-      const audioChannels = [new Array(64000), new Array(64000)];
+      // Start the display loop    
       this.displayLoop.start(() => {
         try {
-          n64module._runMainLoop();
-          n64module._runMainLoop();
-
-          this.audioWritePosition = n64module._getAudioWritePosition();
-          let pos = 0;
-          while (this.audioWritePosition !== this.audioReadPosition) {
-            audioChannels[0][pos] = (this.audioBufferResampled[this.audioReadPosition] / 32768);
-            audioChannels[1][pos++] = (this.audioBufferResampled[this.audioReadPosition + 1] / 32768);
-            this.audioReadPosition += 2;
-            if (this.audioReadPosition === 64000) {
-              this.audioReadPosition = 0;
-            }
-          }
-          this.audioProcessor.storeSound(audioChannels, pos);
-
           this.pollControls();
+          n64module._runMainLoop();
         } catch (e) {
-
           app.exit(e);
         }
       });
