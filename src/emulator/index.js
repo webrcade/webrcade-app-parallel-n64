@@ -6,6 +6,8 @@ import {
   KeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
+  md5,
+  u8ArrayToStr,
   CIDS,
   KCODES,
   LOG  
@@ -50,7 +52,14 @@ export class Emulator extends AppWrapper {
     this.saveStatePath = null;
   }
 
-  SRAM_FILE = '/rom.srm';
+  EMPTY_EEPROM_SAVE_MD5 = "e0deebd3c3f560212af17c68b9344bae";
+  EEPROM_SAVE = "/save.eep";
+  EMPTY_SRAM_SAVE_MD5 = "bb7df04e1b0a2570657527a7e108ae23";
+  SRAM_SAVE = "/save.sra";
+  EMPTY_FLASH_SAVE_MD5 = "41d2e2c0c0edfccf76fa1c3e38bc1cf2";
+  FLASH_SAVE = "/save.fla";
+  EMPTY_PAK_SAVE_MD5 = "bca9dca61f42308a5230074bc4d2ac87";
+  PAK_SAVE_PREFIX = "/save.pak.";  
 
   setRom(pal, name, bytes, md5) {
     if (bytes.byteLength === 0) {
@@ -70,7 +79,10 @@ export class Emulator extends AppWrapper {
 
   createControllers() {
     return new Controllers([
-      new Controller(new N64KeyCodeToControlMapping())
+      new Controller(new N64KeyCodeToControlMapping()),
+      new Controller(),
+      new Controller(),
+      new Controller()
     ]);
   }  
 
@@ -87,7 +99,7 @@ export class Emulator extends AppWrapper {
     
     controllers.poll();
 
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 4; i++) {
       let input = 0;
       let axisX = 0;
       let axisY = 0;
@@ -144,7 +156,7 @@ export class Emulator extends AppWrapper {
       axisX = (controllers.getAxisValue(i, 0, true) * 0x7FFF) | 0;
       axisY = (controllers.getAxisValue(i, 0, false) * 0x7FFF) | 0;
 
-      this.n64module._updateControls(input, axisX, axisY);
+      this.n64module._updateControls(i, input, axisX, axisY);
     }
   }
                              
@@ -169,7 +181,6 @@ export class Emulator extends AppWrapper {
               n64module.onAbort = msg => app.exit(msg);
               n64module.onExit = () => app.exit();
               this.n64module = n64module;
-              console.log(n64module);
               resolve();
             });
         } else {
@@ -188,45 +199,122 @@ export class Emulator extends AppWrapper {
   }
 
   async loadState() {
-    // const { saveStatePath, storage, SRAM_FILE } = this;
-    // const { FS } = window;
+    const { app, n64module, romMd5, storage } = this;
+    const FS = n64module.FS;
 
-    // // Write the save state (if applicable)
-    // try {
-    //   // Create the save path (MEM FS)
-    //   const res = FS.analyzePath(SRAM_FILE, true);
-    //   if (!res.exists) {
-    //     const s = await storage.get(saveStatePath);
-    //     if (s) {
-    //       LOG.info('writing sram file.');
-    //       FS.writeFile(SRAM_FILE, s);
-    //     }
-    //   }
-    // } catch (e) {
-    //   LOG.error(e);
-    // }    
+    let path = null;
+    let res = null;
+    let s = null;
+
+    try {        
+      res = FS.analyzePath(this.EEPROM_SAVE, true);
+      if (!res.exists) {
+        path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+        s = await storage.get(path);          
+        if (s) {
+          FS.writeFile(this.EEPROM_SAVE, s);
+        }
+      }
+      res = FS.analyzePath(this.SRAM_SAVE, true);
+      if (!res.exists) {
+        path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+        s = await storage.get(path);          
+        if (s) {
+          FS.writeFile(this.SRAM_SAVE, s);
+        }
+      }
+      res = FS.analyzePath(this.FLASH_SAVE, true);
+      if (!res.exists) {
+        path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+        s = await storage.get(path);          
+        if (s) {
+          FS.writeFile(this.FLASH_SAVE, s);
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+        res = FS.analyzePath(pakName, true);
+        if (!res.exists) {
+          path = app.getStoragePath(`${romMd5}${pakName}`);
+          s = await storage.get(path);          
+          if (s) {
+            FS.writeFile(pakName, s);
+          }
+        }
+      }
+    } catch(e) {
+      LOG.error(e);
+    }
   }
 
   async saveState() {
-    // const { saveStatePath, started, SRAM_FILE } = this;
-    // const { Module, FS } = window;
-    // if (!started || !saveStatePath) {
-    //   return;
-    // }
-    
-    // Module._S9xAutoSaveSRAM();    
-    // const res = FS.analyzePath(SRAM_FILE, true);
-    // if (res.exists) {
-    //   const s = FS.readFile(SRAM_FILE);              
-    //   if (s) {
-    //     LOG.info('saving sram.');
-    //     await this.saveStateToStorage(saveStatePath, s);
-    //   }
-    // }
+    const { app, n64module, romMd5, storage } = this;
+    const FS = n64module.FS;
+
+    let found = false;
+    let path = "";
+
+    try {
+      // Force save
+      n64module._writeSaves();
+
+      let s = FS.readFile(this.EEPROM_SAVE);    
+      if (s) {          
+        path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+        if (md5(u8ArrayToStr(s)) !== this.EMPTY_EEPROM_SAVE_MD5) {        
+          found = true;
+          await this.saveStateToStorage(path, s, false);  
+        } else {
+          await storage.remove(path);
+        }
+      }
+      s = FS.readFile(this.SRAM_SAVE);    
+      if (s) {          
+        path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+        if (md5(u8ArrayToStr(s)) !== this.EMPTY_SRAM_SAVE_MD5) {        
+          found = true;
+          await this.saveStateToStorage(path, s, false);  
+        } else {
+          await storage.remove(path);
+        }
+      }
+      s = FS.readFile(this.FLASH_SAVE);    
+      if (s) {          
+        path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+        if (md5(u8ArrayToStr(s)) !== this.EMPTY_FLASH_SAVE_MD5) {        
+          found = true;
+          await this.saveStateToStorage(path, s, false);  
+        } else {
+          await storage.remove(path);
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+        s = FS.readFile(pakName);    
+        if (s) {          
+          path = app.getStoragePath(`${romMd5}${pakName}`);
+          if (md5(u8ArrayToStr(s)) !== this.EMPTY_PAK_SAVE_MD5) {        
+            found = true;
+            await this.saveStateToStorage(path, s, false);  
+          } else {
+            await storage.remove(path);
+          }
+        }  
+      }
+
+      path = app.getStoragePath(`${romMd5}/sav`);
+      if (found) {      
+        await this.saveStateToStorage(path, null);
+      } else {
+        await storage.remove(path);
+      }
+    } catch(e) {
+      LOG.error(e);
+    }
   }
 
   async onStart(canvas) {
-    const { app, debug, n64module, pal, romBytes, romMd5 } = this;
+    const { app, debug, n64module, pal, romBytes } = this;
 
     try {
       // FS
@@ -235,21 +323,7 @@ export class Emulator extends AppWrapper {
       // Set the canvas for the module
       n64module.canvas = canvas; 
           
-      // Force PAL if applicable
-      if (pal) {
-        // Module._force_pal(1);
-      }
-
-      // Enable debug settings
-      if (debug) {
-        // Module._show_fps(1);
-      }
-
-      // Disable Emscripten capturing events
-      //window.SDL.receiveEvent = (event) => {}
-
       // Load save state
-      this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
       await this.loadState();
 
       // Load the ROM
@@ -257,6 +331,7 @@ export class Emulator extends AppWrapper {
       const u8array = new Uint8Array(romBytes);
       FS.writeFile(filename, u8array);
 
+      // Start the emulator
       n64module.callMain([filename]);
 
       // Determine PAL mode      
@@ -265,11 +340,12 @@ export class Emulator extends AppWrapper {
 
       // Create display loop
       this.displayLoop = new DisplayLoop(
-        ((isPal ? 50 : 60) / 1), // 60.13
+        (isPal ? 50 : 60), // 60.13
         false, debug);
 
       this.displayLoop.setDebugCallback((msg) => {        
-        return msg + ", vbo: " + n64module._isVboEnabled();
+        return msg + ", Vbo: " + n64module._isVboEnabled() 
+          + ", Tc: " + n64module._getTrimCount();
       });
       
       // Audio configuration
