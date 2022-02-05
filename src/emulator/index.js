@@ -6,13 +6,13 @@ import {
   KeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
+  UrlUtil,
   md5,
   u8ArrayToStr,
   CIDS,
   KCODES,
   LOG  
 } from "@webrcade/app-common"
-
 
 const UP      = 0x0001;
 const DOWN    = 0x0002;
@@ -179,7 +179,7 @@ export class Emulator extends AppWrapper {
           window.n64()
             .then(n64module => {
               n64module.onAbort = msg => app.exit(msg);
-              n64module.onExit = () => app.exit();
+              n64module.onExit = () => app.exit();  
               this.n64module = n64module;
               resolve();
             });
@@ -318,11 +318,11 @@ export class Emulator extends AppWrapper {
 
     try {
       // FS
-      const FS = n64module.FS;
+      const FS = n64module.FS;      
 
       // Set the canvas for the module
       n64module.canvas = canvas; 
-          
+                
       // Load save state
       await this.loadState();
 
@@ -331,8 +331,19 @@ export class Emulator extends AppWrapper {
       const u8array = new Uint8Array(romBytes);
       FS.writeFile(filename, u8array);
 
-      // Start the emulator
-      n64module.callMain([filename]);
+      // Get skip count
+      let skip = 0;
+      try {
+        const skipStr = UrlUtil.getParam(window.location.search, "n64.skip");
+        if (skipStr) {
+          skip = parseInt(skipStr)
+        }
+      } catch(e) {
+        LOG.error("Error parsing skip: " + e);
+      }
+
+      // Start the emulator      
+      n64module.callMain([filename]);      
 
       // Determine PAL mode      
       const isPal = pal ? true : (n64module._isPalSystem() === 1);
@@ -345,7 +356,8 @@ export class Emulator extends AppWrapper {
 
       this.displayLoop.setDebugCallback((msg) => {        
         return msg + ", Vbo: " + n64module._isVboEnabled() 
-          + ", Tc: " + n64module._getTrimCount();
+          + ", Tc: " + n64module._getTrimCount()
+          + ", Skip: " + n64module._getSkipCount()
       });
       
       // Audio configuration
@@ -359,10 +371,17 @@ export class Emulator extends AppWrapper {
       this.audioProcessor.start();      
 
       // Start the display loop    
+      let first = true;
       this.displayLoop.start(() => {
         try {
           this.pollControls();
           n64module._runMainLoop();
+          if (first) {
+            if (skip > 0) {
+              n64module._setSkipCount(skip);
+            }
+            first = false;
+          }
         } catch (e) {
           app.exit(e);
         }
