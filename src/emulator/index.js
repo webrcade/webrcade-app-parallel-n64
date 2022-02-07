@@ -53,6 +53,7 @@ export class Emulator extends AppWrapper {
     this.pal = null;
     this.saveStatePath = null;
     this.started = false;
+    this.escapeCount = -1;
   }
 
   EMPTY_EEPROM_SAVE_MD5 = "e0deebd3c3f560212af17c68b9344bae";
@@ -118,14 +119,24 @@ export class Emulator extends AppWrapper {
     
     controllers.poll();
 
+    if (controllers.isControlDown(0, CIDS.LTRIG) ||
+      controllers.isControlDown(0, CIDS.LANALOG) ||
+      controllers.isControlDown(0, CIDS.RANALOG)) {
+      this.escapeCount = this.escapeCount === -1 ? 0 : (this.escapeCount + 1);
+    } else {
+      this.escapeCount = -1;
+    }
+
     for (let i = 0; i < 4; i++) {
       let input = 0;
       let axisX = 0;
       let axisY = 0;
 
-      if (controllers.isControlDown(i, CIDS.ESCAPE)) {
+      // Hack to reduce likelihood of accidentally bringing up menu
+      if (controllers.isControlDown(0 /*i*/, CIDS.ESCAPE) && 
+        (this.escapeCount >= 0 && this.escapeCount < 60)) {
         if (this.pause(true)) {
-          controllers.waitUntilControlReleased(i, CIDS.ESCAPE)
+          controllers.waitUntilControlReleased(0 /*i*/, CIDS.ESCAPE)
             .then(() => this.showPauseMenu());
           return;
         }

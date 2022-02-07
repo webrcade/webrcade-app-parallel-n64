@@ -12,6 +12,7 @@ const MESSAGES = {
   hex: "Unable to see enemies, black screen.",
   hm: "Graphics corrupted (appear too large).",
   midway: "Game screens are black.",
+  locksUp: "Game locks up when starting.",
   noSave: "Unable to save games.",
   periodicFlashing: "Screen periodically flashes.",
   periodicLongPauses: "Game periodically pauses for long periods of time.",
@@ -68,6 +69,9 @@ const ISSUES = {
   "a6e56e36e311994103a362ca5e5478b9": [M.hm], // JPN
   "82a8c49df8663bb0fca96f6cd16fe0ac": [M.hm], // JPN (Rev 1)
   "e7d9467ed78251c4b393fc9fca348e96": [M.hm], // JPN (Rev 2)
+  // Iggy's Reckin' Balls
+  "07e0d07122336dc0fc83ef1e0bcbeea0": [M.black], // USA
+  "08deef2dbcaddc2bcb08b5ecccfd7e48": [M.black], // EUR
   // In-Fisherman - Bass Hunter 64
   "3451c623e119c62e8a0ac6c3e57bff6f": [M.flashingScreen], // USA
   "7249524a0519489e8173b29246e6dd70": [M.flashingScreen], // EUR
@@ -83,6 +87,8 @@ const ISSUES = {
   "8dfb2fac888368660b54e390fe9042f4": [M.corruptGfx], // USA    
   "c4a2dfc5c9d5041b2d6575db191bf3f3": [M.corruptGfx], // EUR    
   "6b7d1db6affbdd27d08c7329c3ce28e2": [M.corruptGfx], // JPN    
+  // Mia Hamm Soccer 64
+  "537d7cfed7a0f3287d711f187e70b2fc": [M.locksUp], // USA
   // Midway's Greatest Arcade Hits - Volume 1
   "68cf12426b11e75df95d64dc6b94d41d": [M.midway], // USA    
   // Mystical Ninja Starring Goemon
@@ -92,6 +98,8 @@ const ISSUES = {
   "2eab72bf6ee786dd521a360d94a868dd": [M.corruptGfx], // USA
   // Nascar 2000
   "fb698dd422fab3ce770224b2385173d5": [M.corruptGfx], // USA
+  // NBA Showtime - NBA on NBC
+  "9f62363594b50f8a2695c113e52d9485": [M.locksUp], // USA
   // NFL Quarterback Club 98
   "593678bcd8c2c98e0b72cb8b22771584": [M.black], // USA
   "eb1a0007ed08aa3be9ef465447c69caf": [M.black], // EUR
@@ -104,6 +112,9 @@ const ISSUES = {
   "77a22697ba18ec59018f0c8b5f16c656": [M.ppl], // GER
   "fcc53191ce4825e5b858deaae9ec6d8a": [M.black], // FRA
   "cccda8bdb4c64de28fa086de3f8c0bd1": [M.ppl], // EUR
+  // Quake
+  "056e41dd8205e701f630b8e19ae4f523": [M.flashingScreen], // USA
+  "d42ef7adf20697aee783dbc33eafa107": [M.flashingScreen], // EUR  
   // Quake II
   "ca711afdd1e85147d309f0c8c56241ad": [M.periodicFlashing], // USA
   "bb759ec808c3ad387b9d7c02b99decce": [M.periodicFlashing], // EUR  
@@ -126,6 +137,8 @@ const ISSUES = {
   // Star Wars Episode I: Battle for Naboo
   "abc8665fc1a2c76ff61394aea0dad6c3": [M.unknownOp], // USA
   "415a266c6dff65350fd577a127a2d601": [M.unknownOp], // EUR
+  // Stunt Racer 64
+  "b84f3c943e89f3743befb4092deed5cc": [M.unknownOp], // EUR  
   // Vigilante 8  
   "afce4ff54d26b29ba7be5be1b180fee9": [M.corruptGfx], // USA
   "56fe17c8aebb21a2e625d74f66b7cbe3": [M.corruptGfx], // EUR
