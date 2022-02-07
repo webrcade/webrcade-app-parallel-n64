@@ -27,7 +27,7 @@ class App extends WebrcadeApp {
     const exts = 
       AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, false);
     const extsNotUnique = 
-      AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, true);
+      AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, true);    
 
     try {
       // Get the ROM location that was specified
@@ -71,8 +71,10 @@ class App extends WebrcadeApp {
   async onPreExit() {
     try {
       await super.onPreExit();
-      await this.emulator.saveState();
-      await this.emulator.destroy();
+      if (this.emulator) {
+        await this.emulator.saveState();
+        await this.emulator.destroy();
+      }
     } catch (e) {
       LOG.error(e);
     }

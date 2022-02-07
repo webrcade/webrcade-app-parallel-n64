@@ -14,6 +14,8 @@ import {
   LOG  
 } from "@webrcade/app-common"
 
+import { getCompatibilityMessage } from "./compat";
+
 const UP      = 0x0001;
 const DOWN    = 0x0002;
 const LEFT    = 0x0004;
@@ -50,6 +52,7 @@ export class Emulator extends AppWrapper {
     this.romName = null;
     this.pal = null;
     this.saveStatePath = null;
+    this.started = false;
   }
 
   EMPTY_EEPROM_SAVE_MD5 = "e0deebd3c3f560212af17c68b9344bae";
@@ -61,20 +64,36 @@ export class Emulator extends AppWrapper {
   EMPTY_PAK_SAVE_MD5 = "bca9dca61f42308a5230074bc4d2ac87";
   PAK_SAVE_PREFIX = "/save.pak.";  
 
-  setRom(pal, name, bytes, md5) {
-    if (bytes.byteLength === 0) {
-      throw new Error("The size is invalid (0 bytes).");
-    }
-    this.romName = name;
-    this.romMd5 = md5;
-    this.romBytes = bytes;
-    this.pal = pal;
-    if (this.pal === null || this.pal === undefined) {
-      this.pal = false;
-    }
-    LOG.info('name: ' + this.romName);
-    LOG.info('md5: ' + this.romMd5);
-    LOG.info('pal: ' + this.pal);
+  async setRom(pal, name, bytes, md5) {
+    return new Promise((resolve, reject) => {    
+      if (bytes.byteLength === 0) {
+        throw new Error("The size is invalid (0 bytes).");
+      }
+      this.romName = name;
+      this.romMd5 = md5;
+      this.romBytes = bytes;
+      this.pal = pal;
+      if (this.pal === null || this.pal === undefined) {
+        this.pal = false;
+      }
+
+      LOG.info('name: ' + this.romName);
+      LOG.info('md5: ' + this.romMd5);
+      LOG.info('pal: ' + this.pal);    
+
+      const compatMsg = getCompatibilityMessage(this.romMd5);
+      if (compatMsg) {
+        this.app.yesNoPrompt({
+          header: "Compatibility Issues",
+          message: compatMsg,
+          prompt: "Do you still wish to continue?",
+          onYes: (prompt) => { prompt.close(); resolve(); },
+          onNo: (prompt) => { prompt.close(); this.app.exit() }  
+        });
+      } else {
+        resolve();
+      }
+    });
   }  
 
   createControllers() {
@@ -250,6 +269,8 @@ export class Emulator extends AppWrapper {
   async saveState() {
     const { app, n64module, romMd5, storage } = this;
     const FS = n64module.FS;
+    
+    if (!this.started) return;
 
     let found = false;
     let path = "";
@@ -370,9 +391,12 @@ export class Emulator extends AppWrapper {
       // Start the audio processor
       this.audioProcessor.start();      
 
+      // Mark that the loop is starting
+      this.started = true;
+
       // Start the display loop    
       let first = true;
-      this.displayLoop.start(() => {
+      this.displayLoop.start(() => {        
         try {
           this.pollControls();
           n64module._runMainLoop();
