@@ -1,18 +1,20 @@
 import {
   blobToStr,
-  md5,  
+  md5,
   romNameScorer,
   AppRegistry,
-  FetchAppData, 
-  Resources, 
-  Unzip, 
-  UrlUtil, 
-  WebrcadeApp, 
+  FetchAppData,
+  Resources,
+  Unzip,
+  UrlUtil,
+  WebrcadeApp,
   APP_TYPE_KEYS,
   LOG,
-  TEXT_IDS 
+  TEXT_IDS
 } from '@webrcade/app-common'
+
 import { Emulator } from './emulator'
+import { N64PauseScreen } from './pause';
 
 import './App.scss';
 
@@ -24,10 +26,10 @@ class App extends WebrcadeApp {
 
     const { appProps, ModeEnum } = this;
 
-    const exts = 
+    const exts =
       AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, false);
-    const extsNotUnique = 
-      AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, true);    
+    const extsNotUnique =
+      AppRegistry.instance.getExtensions(APP_TYPE_KEYS.PARALLEL_N64, true, true);
 
     try {
       // Get the ROM location that was specified
@@ -45,9 +47,10 @@ class App extends WebrcadeApp {
       const uz = new Unzip().setDebug(this.isDebug());
       let romBlob = null;
       let romMd5 = null;
+      const fad = new FetchAppData(rom);
       emulator.loadEmscriptenModule()
-        .then(() => new FetchAppData(rom).fetch())
-        .then(response => { LOG.info('downloaded.'); return response.blob() })
+        .then(() => fad.fetch())
+        .then(res => { LOG.info(fad.getHeaders(res)); return res.blob(); })
         .then(blob => uz.unzip(blob, extsNotUnique, exts, romNameScorer))
         .then(blob => { romBlob = blob; return blob; })
         .then(blob => blobToStr(blob))
@@ -97,6 +100,20 @@ class App extends WebrcadeApp {
     );
   }
 
+  renderPauseScreen() {
+    const { appProps, emulator } = this;
+
+    return (
+      <N64PauseScreen
+        emulator={emulator}
+        appProps={appProps}
+        closeCallback={() => this.resume()}
+        exitCallback={() => this.exit()}
+        isEditor={this.isEditor}
+      />
+    );
+  }
+
   render() {
     const { mode } = this.state;
     const { ModeEnum } = this;
@@ -105,7 +122,7 @@ class App extends WebrcadeApp {
       <>
         { super.render()}
         { mode === ModeEnum.LOADING ? this.renderLoading() : null}
-        { mode === ModeEnum.PAUSE ? this.renderPauseScreen() : null}        
+        { mode === ModeEnum.PAUSE ? this.renderPauseScreen() : null}
         { mode === ModeEnum.LOADED || mode === ModeEnum.PAUSE  ? this.renderCanvas() : null}
       </>
     );
