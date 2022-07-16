@@ -52,6 +52,7 @@ class App extends WebrcadeApp {
       emulator.loadEmscriptenModule()
         .then(() => settings.load())
         // .then(() => settings.setBilinearFilterEnabled(false))
+        // .then(() => settings.setVsyncEnabled(false)) // VSYNC is disabled for N64 always
         .then(() => fad.fetch())
         .then(res => { LOG.info(fad.getHeaders(res)); return res.blob(); })
         .then(blob => uz.unzip(blob, extsNotUnique, exts, romNameScorer))
