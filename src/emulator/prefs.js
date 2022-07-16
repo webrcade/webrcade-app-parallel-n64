@@ -2,10 +2,13 @@ import {
   isIos,
   isMacOs,
   isTouchSupported,
+  BaseSettings,
 } from "@webrcade/app-common"
 
-export class Prefs {
+export class Prefs extends BaseSettings {
   constructor(emu) {
+    super(emu.getStorage());
+
     this.emu = emu;
     const app = emu.getApp();
 
@@ -16,19 +19,15 @@ export class Prefs {
   }
 
   async load() {
-    const storage = this.emu.getStorage();
-    let enabled = await storage.get(this.vboPath);
+    let enabled = await super.loadBool(this.vboPath, null);
     if (enabled === null) {
       enabled = !(isIos() || (isMacOs() && isTouchSupported()));
-    } else {
-      enabled = (enabled === "true");
     }
     this.vboEnabled = enabled;
   }
 
   async save() {
-    const storage = this.emu.getStorage();
-    await storage.put(this.vboPath, this.vboEnabled.toString());
+    await super.saveBool(this.vboPath, this.vboEnabled);
   }
 
   isVboEnabled() {

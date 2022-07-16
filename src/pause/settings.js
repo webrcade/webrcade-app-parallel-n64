@@ -104,7 +104,7 @@ class N64SettingsTab extends FieldsTab {
       <>
         <FieldRow>
           <FieldLabel>
-            Enable vertex buffers
+            Vertex buffers
           </FieldLabel>
           <FieldControl>
             <Switch
