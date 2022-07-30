@@ -58,6 +58,7 @@ export class Emulator extends AppWrapper {
     this.started = false;
     this.escapeCount = -1;
     this.prefs = new Prefs(this);
+    this.lastSound = 0;
   }
 
   EMPTY_EEPROM_SAVE_MD5 = "e0deebd3c3f560212af17c68b9344bae";
@@ -120,6 +121,12 @@ export class Emulator extends AppWrapper {
 
   async onShowPauseMenu() {
     await this.saveState();
+  }
+
+  onPause(p, isMenu) {
+    if (!p && isMenu) {
+      this.lastSound = Date.now();
+    }
   }
 
   pollControls() {
@@ -412,7 +419,25 @@ export class Emulator extends AppWrapper {
 
       // Audio configuration
       let audioArray = null;
+
+      this.lastSound = Date.now();
+
+      const emu = this;
+
       window.audioCallback = (offset, length) => {
+        if (isIos()) {
+          let now = Date.now();
+          if (now - this.lastSound > 500) {
+            if (this.audioProcessor) {
+              this.audioProcessor.pause(true);
+              this.audioProcessor = this.createAudioProcessor();
+              emu.addAudioProcessorCallback(this.audioProcessor);
+              this.audioProcessor.start(true);
+              this.app.setShowOverlay(true);
+            }
+          }
+          this.lastSound = now;
+        }
         audioArray = new Int16Array(n64module.HEAP16.buffer, offset, 4096);
         this.audioProcessor.storeSoundCombinedInput(audioArray, 2, length, 0, 32768);
       }
