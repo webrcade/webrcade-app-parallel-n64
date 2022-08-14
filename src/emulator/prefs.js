@@ -3,7 +3,7 @@ import {
   isMacOs,
   isTouchSupported,
   BaseSettings,
-} from "@webrcade/app-common"
+} from '@webrcade/app-common';
 
 export class Prefs extends BaseSettings {
   constructor(emu) {
@@ -12,7 +12,7 @@ export class Prefs extends BaseSettings {
     this.emu = emu;
     const app = emu.getApp();
 
-    const PREFS_PREFIX = "prefs";
+    const PREFS_PREFIX = 'prefs';
 
     this.vboPath = app.getStoragePath(`${PREFS_PREFIX}.vboEnabled`);
     this.vboEnabled = true;

@@ -1,5 +1,5 @@
-import React from "react";
-import { Component } from "react";
+import React from 'react';
+import { Component } from 'react';
 
 import {
   EditorScreen,
@@ -10,7 +10,7 @@ import {
   SettingsWhiteImage,
   Switch,
   WebrcadeContext,
-} from '@webrcade/app-common'
+} from '@webrcade/app-common';
 
 export class N64SettingsEditor extends Component {
   constructor() {
@@ -18,7 +18,7 @@ export class N64SettingsEditor extends Component {
     this.state = {
       tabIndex: null,
       focusGridComps: null,
-      values: {}
+      values: {},
     };
   }
 
@@ -28,9 +28,9 @@ export class N64SettingsEditor extends Component {
 
     this.setState({
       values: {
-        vboEnabled: prefs.isVboEnabled()
-      }
-    })
+        vboEnabled: prefs.isVboEnabled(),
+      },
+    });
   }
 
   render() {
@@ -40,11 +40,11 @@ export class N64SettingsEditor extends Component {
 
     const setFocusGridComps = (comps) => {
       this.setState({ focusGridComps: comps });
-    }
+    };
 
     const setValues = (values) => {
       this.setState({ values: values });
-    }
+    };
 
     return (
       <EditorScreen
@@ -53,24 +53,26 @@ export class N64SettingsEditor extends Component {
           prefs.setVboEnabled(values.vboEnabled);
           prefs.save().finally(() => {
             onClose();
-          })
+          });
         }}
         onClose={onClose}
         focusGridComps={focusGridComps}
         onTabChange={(oldTab, newTab) => this.setState({ tabIndex: newTab })}
-        tabs={[{
-          image: SettingsWhiteImage,
-          label: "Nintendo 64 Settings",
-          content: (
-            <N64SettingsTab
-              emulator={emulator}
-              isActive={tabIndex === 0}
-              setFocusGridComps={setFocusGridComps}
-              values={values}
-              setValues={setValues}
-            />
-          )
-        }]}
+        tabs={[
+          {
+            image: SettingsWhiteImage,
+            label: 'Nintendo 64 Settings',
+            content: (
+              <N64SettingsTab
+                emulator={emulator}
+                isActive={tabIndex === 0}
+                setFocusGridComps={setFocusGridComps}
+                values={values}
+                setValues={setValues}
+              />
+            ),
+          },
+        ]}
       />
     );
   }
@@ -80,9 +82,7 @@ class N64SettingsTab extends FieldsTab {
   constructor() {
     super();
     this.enableVboRef = React.createRef();
-    this.gridComps = [
-      [this.enableVboRef]
-    ]
+    this.gridComps = [[this.enableVboRef]];
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -90,7 +90,7 @@ class N64SettingsTab extends FieldsTab {
     const { setFocusGridComps } = this.props;
     const { isActive } = this.props;
 
-    if (isActive && (isActive !== prevProps.isActive)) {
+    if (isActive && isActive !== prevProps.isActive) {
       setFocusGridComps(gridComps);
     }
   }
@@ -103,14 +103,12 @@ class N64SettingsTab extends FieldsTab {
     return (
       <>
         <FieldRow>
-          <FieldLabel>
-            Vertex buffers
-          </FieldLabel>
+          <FieldLabel>Vertex buffers</FieldLabel>
           <FieldControl>
             <Switch
               ref={enableVboRef}
-              onPad={e => focusGrid.moveFocus(e.type, enableVboRef)}
-              onChange={e => {
+              onPad={(e) => focusGrid.moveFocus(e.type, enableVboRef)}
+              onChange={(e) => {
                 setValues({ ...values, ...{ vboEnabled: e.target.checked } });
               }}
               checked={values.vboEnabled}
