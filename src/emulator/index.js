@@ -242,97 +242,190 @@ export class Emulator extends AppWrapper {
     console.log('destroy end')
   }
 
-  async loadState() {
-    const { app, n64module, romMd5, storage } = this;
-    const FS = n64module.FS;
+  async migrateSaves() {
+    const { app, romMd5, storage } = this;
 
-    let path = null;
-    let res = null;
-    let s = null;
+    // Load old saves (if applicable)
+    const files = [];
 
-    try {
-      res = FS.analyzePath(this.EEPROM_SAVE, true);
-      if (!res.exists) {
-        path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
-        s = await storage.get(path);
-        if (s) {
-          FS.writeFile(this.EEPROM_SAVE, s);
-        }
+    const eepromPath = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+    let s = await storage.get(eepromPath);
+    if (s) {
+      files.push({
+        name: this.EEPROM_SAVE.slice(1),
+        content: s,
+      });
+    }
+    const sramPath = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+    s = await storage.get(sramPath);
+    if (s) {
+      files.push({
+        name: this.SRAM_SAVE.slice(1),
+        content: s,
+      });
+    }
+    const flashPath = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+    s = await storage.get(flashPath);
+    if (s) {
+      files.push({
+        name: this.FLASH_SAVE.slice(1),
+        content: s,
+      });
+    }
+    for (let i = 0; i < 4; i++) {
+      const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+      const pakPath = app.getStoragePath(`${romMd5}${pakName}`);
+      s = await storage.get(pakPath);
+      if (s) {
+        files.push({
+          name: pakName.slice(1),
+          content: s,
+        });
       }
-      res = FS.analyzePath(this.SRAM_SAVE, true);
-      if (!res.exists) {
-        path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
-        s = await storage.get(path);
-        if (s) {
-          FS.writeFile(this.SRAM_SAVE, s);
-        }
-      }
-      res = FS.analyzePath(this.FLASH_SAVE, true);
-      if (!res.exists) {
-        path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
-        s = await storage.get(path);
-        if (s) {
-          FS.writeFile(this.FLASH_SAVE, s);
-        }
-      }
+    }
+
+    if (files.length > 0) {
+      LOG.info('Migrating local saves.');
+      const saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+
+      await this.getSaveManager().saveLocal(saveStatePath, files);
+
+      // Delete old location (and info)
+      await storage.remove(eepromPath);
+      await storage.remove(sramPath);
+      await storage.remove(flashPath);
       for (let i = 0; i < 4; i++) {
         const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
-        res = FS.analyzePath(pakName, true);
-        if (!res.exists) {
-          path = app.getStoragePath(`${romMd5}${pakName}`);
-          s = await storage.get(path);
-          if (s) {
-            FS.writeFile(pakName, s);
+        const pakPath = app.getStoragePath(`${romMd5}${pakName}`);
+        await storage.remove(pakPath);
+      }
+      await storage.remove(`${saveStatePath}/info`);
+    }
+  }
+
+  async loadState() {
+    const { app, n64module, romMd5/*, storage*/ } = this;
+    const FS = n64module.FS;
+
+    // let path = null;
+    // let res = null;
+    // let s = null;
+
+    try {
+      // Migrate old save format
+      await this.migrateSaves();
+
+      // Load save files
+      const saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+      const files = await this.getSaveManager().load(
+        saveStatePath,
+        this.loadMessageCallback,
+      );
+
+      if (files) {
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          if (f.name === this.EEPROM_SAVE.slice(1)) {
+            LOG.info("writing " + f.name);
+            FS.writeFile(this.EEPROM_SAVE, f.content);
+          } else if (f.name === this.SRAM_SAVE.slice(1)) {
+            LOG.info("writing " + f.name);
+            FS.writeFile(this.SRAM_SAVE, f.content);
+          } else if (f.name === this.FLASH_SAVE.slice(1)) {
+            LOG.info("writing " + f.name);
+            FS.writeFile(this.FLASH_SAVE, f.content);
+          } else if (f.name.startsWith(this.PAK_SAVE_PREFIX.slice(1))) {
+            LOG.info("writing " + f.name);
+            FS.writeFile("/" + f.name, f.content);
           }
         }
       }
+
+      // res = FS.analyzePath(this.EEPROM_SAVE, true);
+      // if (!res.exists) {
+      //   path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+      //   s = await storage.get(path);
+      //   if (s) {
+      //     FS.writeFile(this.EEPROM_SAVE, s);
+      //   }
+      // }
+      // res = FS.analyzePath(this.SRAM_SAVE, true);
+      // if (!res.exists) {
+      //   path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+      //   s = await storage.get(path);
+      //   if (s) {
+      //     FS.writeFile(this.SRAM_SAVE, s);
+      //   }
+      // }
+      // res = FS.analyzePath(this.FLASH_SAVE, true);
+      // if (!res.exists) {
+      //   path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+      //   s = await storage.get(path);
+      //   if (s) {
+      //     FS.writeFile(this.FLASH_SAVE, s);
+      //   }
+      // }
+      // for (let i = 0; i < 4; i++) {
+      //   const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+      //   res = FS.analyzePath(pakName, true);
+      //   if (!res.exists) {
+      //     path = app.getStoragePath(`${romMd5}${pakName}`);
+      //     s = await storage.get(path);
+      //     if (s) {
+      //       FS.writeFile(pakName, s);
+      //     }
+      //   }
+      // }
     } catch(e) {
-      LOG.error(e);
+      LOG.error('Error loading save state: ' + e);
     }
   }
 
   async saveState() {
-    const { app, n64module, romMd5, storage } = this;
+    const { app, n64module, romMd5 /*, storage*/ } = this;
     const FS = n64module.FS;
 
     if (!this.started) return;
 
-    let found = false;
+    //let found = false;
     let path = "";
 
     try {
       // Force save
       n64module._writeSaves();
 
+      const files = [];
+
 // TODO: CHECK READ (otherwise throws exception...)
+
       let s = FS.readFile(this.EEPROM_SAVE);
       if (s) {
         path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
         if (md5(u8ArrayToStr(s)) !== this.EMPTY_EEPROM_SAVE_MD5) {
-          found = true;
-          await this.saveStateToStorage(path, s, false);
-        } else {
-          await storage.remove(path);
+          files.push({
+            name: this.EEPROM_SAVE.slice(1),
+            content: s,
+          });
         }
       }
       s = FS.readFile(this.SRAM_SAVE);
       if (s) {
         path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
         if (md5(u8ArrayToStr(s)) !== this.EMPTY_SRAM_SAVE_MD5) {
-          found = true;
-          await this.saveStateToStorage(path, s, false);
-        } else {
-          await storage.remove(path);
+          files.push({
+            name: this.SRAM_SAVE.slice(1),
+            content: s,
+          });
         }
       }
       s = FS.readFile(this.FLASH_SAVE);
       if (s) {
         path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
         if (md5(u8ArrayToStr(s)) !== this.EMPTY_FLASH_SAVE_MD5) {
-          found = true;
-          await this.saveStateToStorage(path, s, false);
-        } else {
-          await storage.remove(path);
+          files.push({
+            name: this.FLASH_SAVE.slice(1),
+            content: s,
+          });
         }
       }
       for (let i = 0; i < 4; i++) {
@@ -341,22 +434,77 @@ export class Emulator extends AppWrapper {
         if (s) {
           path = app.getStoragePath(`${romMd5}${pakName}`);
           if (md5(u8ArrayToStr(s)) !== this.EMPTY_PAK_SAVE_MD5) {
-            found = true;
-            await this.saveStateToStorage(path, s, false);
-          } else {
-            await storage.remove(path);
+            files.push({
+              name: pakName.slice(1),
+              content: s,
+            });
           }
         }
       }
 
       path = app.getStoragePath(`${romMd5}/sav`);
-      if (found) {
-        await this.saveStateToStorage(path, null);
+      if (files.length > 0) {
+        await this.getSaveManager().save(
+          path,
+          files,
+          this.saveMessageCallback,
+        );
       } else {
-        await storage.remove(path);
+        await this.getSaveManager().delete(path);
       }
+
+      // let s = FS.readFile(this.EEPROM_SAVE);
+      // if (s) {
+      //   path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+      //   if (md5(u8ArrayToStr(s)) !== this.EMPTY_EEPROM_SAVE_MD5) {
+      //     found = true;
+      //     await this.saveStateToStorage(path, s, false);
+      //   } else {
+      //     await storage.remove(path);
+      //   }
+      // }
+      // s = FS.readFile(this.SRAM_SAVE);
+      // if (s) {
+      //   path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+      //   if (md5(u8ArrayToStr(s)) !== this.EMPTY_SRAM_SAVE_MD5) {
+      //     found = true;
+      //     await this.saveStateToStorage(path, s, false);
+      //   } else {
+      //     await storage.remove(path);
+      //   }
+      // }
+      // s = FS.readFile(this.FLASH_SAVE);
+      // if (s) {
+      //   path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+      //   if (md5(u8ArrayToStr(s)) !== this.EMPTY_FLASH_SAVE_MD5) {
+      //     found = true;
+      //     await this.saveStateToStorage(path, s, false);
+      //   } else {
+      //     await storage.remove(path);
+      //   }
+      // }
+      // for (let i = 0; i < 4; i++) {
+      //   const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+      //   s = FS.readFile(pakName);
+      //   if (s) {
+      //     path = app.getStoragePath(`${romMd5}${pakName}`);
+      //     if (md5(u8ArrayToStr(s)) !== this.EMPTY_PAK_SAVE_MD5) {
+      //       found = true;
+      //       await this.saveStateToStorage(path, s, false);
+      //     } else {
+      //       await storage.remove(path);
+      //     }
+      //   }
+      // }
+
+      // path = app.getStoragePath(`${romMd5}/sav`);
+      // if (found) {
+      //   await this.saveStateToStorage(path, null);
+      // } else {
+      //   await storage.remove(path);
+      // }
     } catch(e) {
-      LOG.error(e);
+      LOG.error('Error persisting save state: ' + e);
     }
   }
 
