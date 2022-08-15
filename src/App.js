@@ -2,6 +2,7 @@ import {
   blobToStr,
   md5,
   romNameScorer,
+  setMessageAnchorId,
   settings,
   AppRegistry,
   FetchAppData,
@@ -24,6 +25,9 @@ class App extends WebrcadeApp {
 
   componentDidMount() {
     super.componentDidMount();
+
+    // Set anchor for messages
+    setMessageAnchorId('canvas');
 
     const { appProps, ModeEnum } = this;
 

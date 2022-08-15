@@ -617,6 +617,9 @@ export class Emulator extends AppWrapper {
       // Mark that the loop is starting
       this.started = true;
 
+      // Enable show message
+      this.setShowMessageEnabled(true);
+
       // Start the display loop
       let first = true;
       this.displayLoop.start(() => {
