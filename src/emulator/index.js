@@ -349,6 +349,9 @@ export class Emulator extends AppWrapper {
             FS.writeFile('/' + f.name, f.content);
           }
         }
+
+        // Cache the initial files
+        await this.getSaveManager().checkFilesChanged(files);
       }
 
       // res = FS.analyzePath(this.EEPROM_SAVE, true);
@@ -454,7 +457,13 @@ export class Emulator extends AppWrapper {
 
       path = app.getStoragePath(`${romMd5}/sav`);
       if (files.length > 0) {
-        await this.getSaveManager().save(path, files, this.saveMessageCallback);
+        if (await this.getSaveManager().checkFilesChanged(files)) {
+          await this.getSaveManager().save(
+            path,
+            files,
+            this.saveMessageCallback,
+          );
+        }
       } else {
         await this.getSaveManager().delete(path);
       }
