@@ -10,5 +10,6 @@
   height: 96vh;
   max-width: calc(96vh * 1.333);
   max-height: calc(96vw * 0.75);
+  aspect-ratio: 1 / 1 !important;
   //border: 1px solid red;
 }
