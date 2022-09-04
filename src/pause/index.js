@@ -2,12 +2,13 @@ import React from 'react';
 import { Component } from 'react';
 
 import { N64SettingsEditor } from './settings';
-import { GamepadControlsTab } from './controls';
+import { GamepadControlsTab, KeyboardControlsTab } from './controls';
 
 import {
   CustomPauseScreen,
   EditorScreen,
   GamepadWhiteImage,
+  KeyboardWhiteImage,
   PauseScreenButton,
   Resources,
   SettingsWhiteImage,
@@ -32,7 +33,7 @@ export class N64PauseScreen extends Component {
 
   render() {
     const { ADDITIONAL_BUTTON_REFS, ModeEnum } = this;
-    const { appProps, closeCallback, emulator, exitCallback, isEditor } =
+    const { appProps, closeCallback, emulator, exitCallback, isEditor, isStandalone } =
       this.props;
     const { mode } = this.state;
 
@@ -44,6 +45,7 @@ export class N64PauseScreen extends Component {
             closeCallback={closeCallback}
             exitCallback={exitCallback}
             isEditor={isEditor}
+            isStandalone={isStandalone}
             additionalButtonRefs={ADDITIONAL_BUTTON_REFS}
             additionalButtons={[
               <PauseScreenButton
@@ -79,6 +81,11 @@ export class N64PauseScreen extends Component {
                 image: GamepadWhiteImage,
                 label: Resources.getText(TEXT_IDS.GAMEPAD_CONTROLS),
                 content: <GamepadControlsTab />,
+              },
+              {
+                image: KeyboardWhiteImage,
+                label: Resources.getText(TEXT_IDS.KEYBOARD_CONTROLS),
+                content: <KeyboardControlsTab />,
               },
             ]}
           />

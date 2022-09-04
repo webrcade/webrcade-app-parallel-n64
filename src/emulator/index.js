@@ -34,14 +34,79 @@ const CR_KEY = 0x0800;
 const CU_KEY = 0x1000;
 const CD_KEY = 0x2000;
 
-class N64KeyCodeToControlMapping extends KeyCodeToControlMapping {
+const ANALOG_BIT = 0x8000;
+const ANALOG_UP = ANALOG_BIT | CIDS.UP;
+const ANALOG_DOWN = ANALOG_BIT | CIDS.DOWN;
+const ANALOG_LEFT = ANALOG_BIT | CIDS.LEFT;
+const ANALOG_RIGHT = ANALOG_BIT | CIDS.RIGHT;
+
+const C_BIT = 0x4000;
+const C_UP = C_BIT | CIDS.UP;
+const C_DOWN = C_BIT | CIDS.DOWN;
+const C_LEFT = C_BIT | CIDS.LEFT;
+const C_RIGHT = C_BIT | CIDS.RIGHT;
+
+const ANALOG_50 = 0x2000;
+const ANALOG_25 = 0x1000;
+
+// class N64KeyCodeToControlMapping extends KeyCodeToControlMapping {
+//   constructor() {
+//     super({
+//       [KCODES.ENTER]: CIDS.START,
+//       [KCODES.ESCAPE]: CIDS.ESCAPE,
+//       [KCODES.ARROW_UP]: ANALOG_UP,
+//       [KCODES.ARROW_DOWN]: ANALOG_DOWN,
+//       [KCODES.ARROW_RIGHT]: ANALOG_RIGHT,
+//       [KCODES.ARROW_LEFT]: ANALOG_LEFT,
+//       [KCODES.SHIFT_LEFT]: CIDS.A, // A button
+//       [KCODES.CONTROL_LEFT]: CIDS.X, // B button
+//       [KCODES.Z]: CIDS.RTRIG, // Z button
+//       [KCODES.X]: CIDS.LBUMP, // L button
+//       [KCODES.C]: CIDS.RBUMP, // R button
+//       [KCODES.W]: CIDS.UP, // D-pad (up)
+//       [KCODES.A]: CIDS.LEFT, // D-pad (left)
+//       [KCODES.S]: CIDS.DOWN, // D-pad (down)
+//       [KCODES.D]: CIDS.RIGHT, // D-pad (right)
+//       [KCODES.I]: C_UP, // C-pad (up)
+//       [KCODES.J]: C_LEFT, // C-pad (left)
+//       [KCODES.K]: C_DOWN, // C-pad (down)
+//       [KCODES.L]: C_RIGHT, // C-pad (right)
+//       [KCODES.CONTROL_RIGHT]: ANALOG_50, // Analog 50%
+//       [KCODES.SHIFT_RIGHT]: ANALOG_25, // Analog 25%
+//     });
+//   }
+// }
+
+class N64KeyCodeToControlMapping2 extends KeyCodeToControlMapping {
   constructor() {
     super({
       [KCODES.ENTER]: CIDS.START,
       [KCODES.ESCAPE]: CIDS.ESCAPE,
+      [KCODES.ARROW_UP]: ANALOG_UP,
+      [KCODES.ARROW_DOWN]: ANALOG_DOWN,
+      [KCODES.ARROW_RIGHT]: ANALOG_RIGHT,
+      [KCODES.ARROW_LEFT]: ANALOG_LEFT,
+      [KCODES.C]: CIDS.LBUMP, // L button
+      [KCODES.V]: CIDS.RBUMP, // R button
+      [KCODES.Z]: CIDS.X, // B Button
+      [KCODES.X]: CIDS.A, // A button
+      [KCODES.SPACE_BAR]: CIDS.RTRIG, // Z button
+      [KCODES.W]: C_UP, // D-pad (up)
+      [KCODES.A]: C_LEFT, // D-pad (left)
+      [KCODES.S]: C_DOWN, // D-pad (down)
+      [KCODES.D]: C_RIGHT, // D-pad (right)
+      [KCODES.I]: CIDS.UP, // C-pad (up)
+      [KCODES.J]: CIDS.LEFT, // C-pad (left)
+      [KCODES.K]: CIDS.DOWN, // C-pad (down)
+      [KCODES.L]: CIDS.RIGHT, // C-pad (right)
+      [KCODES.CONTROL_RIGHT]: ANALOG_50, // Analog 50%
+      [KCODES.CONTROL_LEFT]: ANALOG_50, // Analog 50%
+      [KCODES.SHIFT_RIGHT]: ANALOG_25, // Analog 25%
+      [KCODES.SHIFT_LEFT]: ANALOG_25, // Analog 25%
     });
   }
 }
+
 
 window.audioCallback = null;
 
@@ -113,8 +178,9 @@ export class Emulator extends AppWrapper {
   }
 
   createControllers() {
+    this.keyToControlMapping = new N64KeyCodeToControlMapping2();
     return new Controllers([
-      new Controller(new N64KeyCodeToControlMapping()),
+      new Controller(this.keyToControlMapping),
       new Controller(),
       new Controller(),
       new Controller(),
@@ -136,7 +202,7 @@ export class Emulator extends AppWrapper {
   }
 
   pollControls() {
-    const { controllers } = this;
+    const { controllers, keyToControlMapping } = this;
 
     controllers.poll();
 
@@ -198,20 +264,50 @@ export class Emulator extends AppWrapper {
       ) {
         input |= Z_KEY;
       }
-      if (controllers.isAxisLeft(i, 1)) {
+      if (controllers.isAxisLeft(i, 1) ||
+        (i === 0 && keyToControlMapping.isControlDown(C_LEFT))) {
         input |= CL_KEY;
       }
-      if (controllers.isAxisRight(i, 1)) {
+      if (controllers.isAxisRight(i, 1) ||
+        (i === 0 && keyToControlMapping.isControlDown(C_RIGHT))) {
         input |= CR_KEY;
       }
-      if (controllers.isAxisUp(i, 1)) {
+      if (controllers.isAxisUp(i, 1) ||
+        (i === 0 && keyToControlMapping.isControlDown(C_UP))) {
         input |= CU_KEY;
       }
-      if (controllers.isAxisDown(i, 1)) {
+      if (controllers.isAxisDown(i, 1) ||
+        (i === 0 && keyToControlMapping.isControlDown(C_DOWN))) {
         input |= CD_KEY;
       }
       axisX = (controllers.getAxisValue(i, 0, true) * 0x7fff) | 0;
       axisY = (controllers.getAxisValue(i, 0, false) * 0x7fff) | 0;
+
+      if (i === 0) {
+        let multiplier = 1;
+        if (keyToControlMapping.isControlDown(ANALOG_50) ||
+          keyToControlMapping.isControlDown(ANALOG_25)) {
+          if (keyToControlMapping.isControlDown(ANALOG_50)) {
+            multiplier -= 0.50;
+          }
+          if (keyToControlMapping.isControlDown(ANALOG_25)) {
+            multiplier -= 0.25;
+          }
+        }
+
+        if (keyToControlMapping.isControlDown(ANALOG_RIGHT)) {
+          axisX = (multiplier * 0x7fff) | 0;
+        }
+        if (keyToControlMapping.isControlDown(ANALOG_LEFT)) {
+          axisX = (-multiplier * 0x7fff) | 0;
+        }
+        if (keyToControlMapping.isControlDown(ANALOG_UP)) {
+          axisY = (-multiplier * 0x7fff) | 0;
+        }
+        if (keyToControlMapping.isControlDown(ANALOG_DOWN)) {
+          axisY = (multiplier * 0x7fff) | 0;
+        }
+      }
 
       this.n64module._updateControls(i, input, axisX, axisY);
     }
@@ -596,10 +692,14 @@ export class Emulator extends AppWrapper {
 
       const emu = this;
 
+      let audioStarted = false;
+
       window.audioCallback = (offset, length) => {
+        if (!audioStarted) return;
+
         if (isIos()) {
           let now = Date.now();
-          if (now - this.lastSound > 500) {
+          if (now - this.lastSound > 1000) {
             if (this.audioProcessor) {
               this.audioProcessor.pause(true);
               this.audioProcessor = this.createAudioProcessor();
@@ -620,26 +720,32 @@ export class Emulator extends AppWrapper {
         );
       };
 
-      // Start the audio processor
-      this.audioProcessor.start();
-
       // Mark that the loop is starting
+      let first = true;
       this.started = true;
 
       // Enable show message
       this.setShowMessageEnabled(true);
 
       // Start the display loop
-      let first = true;
       this.displayLoop.start(() => {
         this.pollControls();
         n64module._runMainLoop();
         try {
           if (first) {
             this.enableVbo(prefs.isVboEnabled());
+
+            // Start the audio processor
+            setTimeout(() => {
+              this.lastSound = Date.now() + 5000;
+              this.audioProcessor.start();
+              audioStarted = true;
+            }, 0);
+
             if (skip > 0) {
               n64module._setSkipCount(skip);
             }
+
             first = false;
           }
         } catch (e) {
