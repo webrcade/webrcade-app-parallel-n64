@@ -11,7 +11,7 @@ import {
   KeyboardWhiteImage,
   PauseScreenButton,
   Resources,
-  SettingsWhiteImage,
+  SettingsAppWhiteImage,
   TEXT_IDS,
 } from '@webrcade/app-common';
 
@@ -60,7 +60,7 @@ export class N64PauseScreen extends Component {
                 }}
               />,
               <PauseScreenButton
-                imgSrc={SettingsWhiteImage}
+                imgSrc={SettingsAppWhiteImage}
                 buttonRef={ADDITIONAL_BUTTON_REFS[1]}
                 label="N64 Settings"
                 onHandlePad={(focusGrid, e) =>

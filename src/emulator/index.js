@@ -656,6 +656,23 @@ export class Emulator extends AppWrapper {
         LOG.error('Error parsing skip: ' + e);
       }
 
+      // Determine the zoom level
+      let zoomLevel = 0;
+      if (this.getProps().zoomLevel) {
+        zoomLevel = this.getProps().zoomLevel;
+      }
+
+      // width: 96vw;
+      // height: 96vh;
+      // max-width: calc(96vh * 1.333);
+      // max-height: calc(96vw * 0.75);
+
+      const size = 96 + zoomLevel;
+      canvas.style.setProperty('width', `${size}vw`, 'important');
+      canvas.style.setProperty('height', `${size}vh`, 'important');
+      canvas.style.setProperty('max-width', `calc(${size}vh*1.333)`, 'important');
+      canvas.style.setProperty('max-height', `calc(${size}vw*0.75)`, 'important');
+
       // Start the emulator
       n64module.callMain([filename]);
 

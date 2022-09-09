@@ -7,7 +7,7 @@ import {
   FieldRow,
   FieldLabel,
   FieldControl,
-  SettingsWhiteImage,
+  SettingsAppWhiteImage,
   Switch,
   WebrcadeContext,
 } from '@webrcade/app-common';
@@ -60,7 +60,7 @@ export class N64SettingsEditor extends Component {
         onTabChange={(oldTab, newTab) => this.setState({ tabIndex: newTab })}
         tabs={[
           {
-            image: SettingsWhiteImage,
+            image: SettingsAppWhiteImage,
             label: 'Nintendo 64 Settings',
             content: (
               <N64SettingsTab
