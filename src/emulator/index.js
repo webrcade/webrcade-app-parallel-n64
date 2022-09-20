@@ -8,6 +8,7 @@ import {
   KeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
+  UAParser,
   UrlUtil,
   md5,
   u8ArrayToStr,
@@ -137,6 +138,49 @@ export class Emulator extends AppWrapper {
 
   getPrefs() {
     return this.prefs;
+  }
+
+  async checkPlatform() {
+
+    // Make sure preferences have been loaded
+    await this.prefs.load();
+
+    return new Promise((resolve, reject) => {
+      const parser = UAParser();
+
+      let issue = false;
+      if (parser.os.name.toLowerCase().includes("ios")) {
+        const ver = parser.os.version.split(".");
+        if (ver.length > 0) {
+          if (ver[0] >= 16) {
+            issue = true;
+          }
+        }
+      }
+
+      if (this.prefs.isIosGpuPromptEnabled() && issue) {
+        this.app.yesNoPrompt({
+          header: 'iOS 16+ Performance Issue',
+          message: "A recent change in iOS 16 has significantly reduced N64 performance\n" +
+                   "Disable the following Safari experimental feature to undo this change:\n" +
+                   "Settings > Safari > Advanced > Experimental Features > GPU Process: WebGL\n\n" +
+                   "See 'https://docs.webrcade.com/apps/emulators/n64/' for additional information.",
+          prompt: 'Do you wish to skip this message in the future?',
+          onYes: (prompt) => {
+            prompt.close();
+            this.prefs.setIosGpuPromptEnabled(false);
+            this.prefs.save();
+            resolve();
+          },
+          onNo: (prompt) => {
+            prompt.close();
+            resolve();
+          },
+        });
+      } else {
+        resolve();
+      }
+    });
   }
 
   async setRom(pal, name, bytes, md5) {

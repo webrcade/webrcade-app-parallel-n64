@@ -78,6 +78,7 @@ class App extends WebrcadeApp {
         .then((str) => {
           romMd5 = md5(str);
         })
+        .then(() => emulator.checkPlatform())
         .then(() => new Response(romBlob).arrayBuffer())
         .then((bytes) =>
           emulator.setRom(

@@ -15,7 +15,9 @@ export class Prefs extends BaseSettings {
     const PREFS_PREFIX = 'prefs';
 
     this.vboPath = app.getStoragePath(`${PREFS_PREFIX}.vboEnabled`);
+    this.iosGpuPromptPath = app.getStoragePath(`${PREFS_PREFIX}.iosGpuPromptEnabled`);
     this.vboEnabled = true;
+    this.iosGpuPromptEnabled = true;
   }
 
   async load() {
@@ -24,10 +26,12 @@ export class Prefs extends BaseSettings {
       enabled = !(isIos() || (isMacOs() && isTouchSupported()));
     }
     this.vboEnabled = enabled;
+    this.iosGpuPromptEnabled = await super.loadBool(this.iosGpuPromptPath, this.iosGpuPromptEnabled);
   }
 
   async save() {
     await super.saveBool(this.vboPath, this.vboEnabled);
+    await super.saveBool(this.iosGpuPromptPath, this.iosGpuPromptEnabled);
   }
 
   isVboEnabled() {
@@ -38,6 +42,16 @@ export class Prefs extends BaseSettings {
     if (this.vboEnabled !== enabled) {
       this.vboEnabled = enabled;
       this.emu.enableVbo(enabled);
+    }
+  }
+
+  isIosGpuPromptEnabled() {
+    return this.iosGpuPromptEnabled;
+  }
+
+  setIosGpuPromptEnabled(enabled) {
+    if (this.iosGpuPromptEnabled !== enabled) {
+      this.iosGpuPromptEnabled = enabled;
     }
   }
 }
