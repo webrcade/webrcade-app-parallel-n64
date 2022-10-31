@@ -669,7 +669,7 @@ export class Emulator extends AppWrapper {
   }
 
   async onStart(canvas) {
-    const { app, debug, n64module, pal, prefs, romBytes } = this;
+    const { app, debug, n64module, pal, prefs } = this;
 
     try {
       // FS
@@ -686,8 +686,11 @@ export class Emulator extends AppWrapper {
 
       // Load the ROM
       const filename = 'custom.v64';
-      const u8array = new Uint8Array(romBytes);
+      const u8array = new Uint8Array(this.romBytes);
       FS.writeFile(filename, u8array);
+      // Clear the rom (free up memory)
+      this.romBytes = null;
+
 
       // Get skip count
       let skip = 0;
