@@ -548,51 +548,61 @@ export class Emulator extends AppWrapper {
       n64module._writeSaves();
 
       const files = [];
+      let s = null;
 
-      // TODO: CHECK READ (otherwise throws exception...)
-
-      let s = FS.readFile(this.EEPROM_SAVE);
-      if (s) {
-        path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
-        if (md5(u8ArrayToStr(s)) !== this.EMPTY_EEPROM_SAVE_MD5) {
-          files.push({
-            name: this.EEPROM_SAVE.slice(1),
-            content: s,
-          });
-        }
-      }
-      s = FS.readFile(this.SRAM_SAVE);
-      if (s) {
-        path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
-        if (md5(u8ArrayToStr(s)) !== this.EMPTY_SRAM_SAVE_MD5) {
-          files.push({
-            name: this.SRAM_SAVE.slice(1),
-            content: s,
-          });
-        }
-      }
-      s = FS.readFile(this.FLASH_SAVE);
-      if (s) {
-        path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
-        if (md5(u8ArrayToStr(s)) !== this.EMPTY_FLASH_SAVE_MD5) {
-          files.push({
-            name: this.FLASH_SAVE.slice(1),
-            content: s,
-          });
-        }
-      }
-      for (let i = 0; i < 4; i++) {
-        const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
-        s = FS.readFile(pakName);
+      try {
+        s = FS.readFile(this.EEPROM_SAVE);
         if (s) {
-          path = app.getStoragePath(`${romMd5}${pakName}`);
-          if (md5(u8ArrayToStr(s)) !== this.EMPTY_PAK_SAVE_MD5) {
+          path = app.getStoragePath(`${romMd5}${this.EEPROM_SAVE}`);
+          if (md5(u8ArrayToStr(s)) !== this.EMPTY_EEPROM_SAVE_MD5) {
             files.push({
-              name: pakName.slice(1),
+              name: this.EEPROM_SAVE.slice(1),
               content: s,
             });
           }
         }
+      } catch (e) {}
+
+      try {
+        s = FS.readFile(this.SRAM_SAVE);
+        if (s) {
+          path = app.getStoragePath(`${romMd5}${this.SRAM_SAVE}`);
+          if (md5(u8ArrayToStr(s)) !== this.EMPTY_SRAM_SAVE_MD5) {
+            files.push({
+              name: this.SRAM_SAVE.slice(1),
+              content: s,
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        s = FS.readFile(this.FLASH_SAVE);
+        if (s) {
+          path = app.getStoragePath(`${romMd5}${this.FLASH_SAVE}`);
+          if (md5(u8ArrayToStr(s)) !== this.EMPTY_FLASH_SAVE_MD5) {
+            files.push({
+              name: this.FLASH_SAVE.slice(1),
+              content: s,
+            });
+          }
+        }
+      } catch (e) {}
+
+      for (let i = 0; i < 4; i++) {
+        const pakName = `${this.PAK_SAVE_PREFIX}${i}`;
+        try {
+          s = FS.readFile(pakName);
+          if (s) {
+            path = app.getStoragePath(`${romMd5}${pakName}`);
+            if (md5(u8ArrayToStr(s)) !== this.EMPTY_PAK_SAVE_MD5) {
+              files.push({
+                name: pakName.slice(1),
+                content: s,
+              });
+            }
+          }
+        } catch (e) {}
       }
 
       path = app.getStoragePath(`${romMd5}/sav`);
@@ -686,11 +696,12 @@ export class Emulator extends AppWrapper {
 
       // Load the ROM
       const filename = 'custom.v64';
-      const u8array = new Uint8Array(this.romBytes);
-      FS.writeFile(filename, u8array);
-      // Clear the rom (free up memory)
+      let stream = FS.open(filename, 'a');
+      let u8array = new Uint8Array(this.romBytes);
+      FS.write(stream, u8array, 0, u8array.length, 0, true);
+      FS.close(stream);
       this.romBytes = null;
-
+      u8array = null;
 
       // Get skip count
       let skip = 0;
