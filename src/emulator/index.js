@@ -1,4 +1,5 @@
 import {
+  getScreenShot,
   isIos,
   isMacOs,
   isTouchSupported,
@@ -19,6 +20,8 @@ import {
 
 import { getCompatibilityMessage } from './compat';
 import { Prefs } from './prefs';
+
+const STATE_FILE_PATH = "/state.out";
 
 const UP = 0x0001;
 const DOWN = 0x0002;
@@ -120,6 +123,7 @@ export class Emulator extends AppWrapper {
     this.romMd5 = null;
     this.romName = null;
     this.pal = null;
+    this.saveStatePrefix = null;
     this.saveStatePath = null;
     this.started = false;
     this.escapeCount = -1;
@@ -195,6 +199,8 @@ export class Emulator extends AppWrapper {
       if (this.pal === null || this.pal === undefined) {
         this.pal = false;
       }
+
+      this.saveStatePrefix = this.app.getStoragePath(`${this.romMd5}/`)
 
       LOG.info('name: ' + this.romName);
       LOG.info('md5: ' + this.romMd5);
@@ -673,6 +679,71 @@ export class Emulator extends AppWrapper {
     }
   }
 
+  async getStateSlots(showStatus = true) {
+    return await this.getSaveManager().getStateSlots(
+      this.saveStatePrefix, showStatus ? this.saveMessageCallback : null
+    );
+  }
+
+  async saveStateForSlot(slot) {
+    const { n64module } = this;
+
+    const shot = await getScreenShot( n64module.canvas,
+      () => { n64module._runMainLoop(); }, 10)
+
+    n64module._writeState();
+
+    let s = null;
+    try {
+
+      const FS = n64module.FS;
+      try {
+        s = FS.readFile(STATE_FILE_PATH);
+      } catch (e) {}
+
+      if (s) {
+        await this.getSaveManager().saveState(
+          this.saveStatePrefix, slot, s,
+          shot ? null : this.n64module.canvas,
+          this.saveMessageCallback,
+          shot,
+          {aspectRatio: "1.333"});
+      }
+    } catch (e) {
+      LOG.error('Error saving state: ' + e);
+    }
+
+    return true;
+  }
+
+  async loadStateForSlot(slot) {
+    const { n64module } = this;
+
+    try {
+      const state = await this.getSaveManager().loadState(
+        this.saveStatePrefix, slot, this.saveMessageCallback);
+
+      if (state) {
+        const FS = n64module.FS;
+        FS.writeFile(STATE_FILE_PATH, state);
+        n64module._readState();
+      }
+    } catch (e) {
+      LOG.error('Error loading state: ' + e);
+    }
+    return true;
+  }
+
+  async deleteStateForSlot(slot, showStatus = true) {
+    try {
+      await this.getSaveManager().deleteState(
+        this.saveStatePrefix, slot, showStatus ? this.saveMessageCallback : null);
+    } catch (e) {
+      LOG.error('Error deleting state: ' + e);
+    }
+    return true;
+  }
+
   enableVbo(enable) {
     const { n64module } = this;
     n64module._setVboEnabled(enable);
@@ -833,3 +904,4 @@ export class Emulator extends AppWrapper {
     }
   }
 }
+

@@ -169,12 +169,12 @@ const ISSUES = {
   'a18ca5dbc85668667aa467add6a62b39': [M.black], // EUR
   '709f966c30ce6df1833e95740a5a2ab2': [M.black], // USA
   // Pilotwings 64
-  'c5569227242e04138aac8457b7f83e6c': [M.pw], // USA
-  'c7bd4ab71093d71d1313905f85292eaf': [M.pw], // JPN
-  '9e90e82cda1f83b2bd43b9b19f68e404': [M.pw], // EUR
-  '3fcd4969f9a080bd2bcb913ec5d7a3bd': [M.pw], // EUR
-  'e8e6ec0692009009f5dca6827b21f59a': [M.pw], // JPN
-  '8b346182730ceaffe5e2ccf6d223c5ef': [M.pw], // USA
+  // 'c5569227242e04138aac8457b7f83e6c': [M.pw], // USA
+  // 'c7bd4ab71093d71d1313905f85292eaf': [M.pw], // JPN
+  // '9e90e82cda1f83b2bd43b9b19f68e404': [M.pw], // EUR
+  // '3fcd4969f9a080bd2bcb913ec5d7a3bd': [M.pw], // EUR
+  // 'e8e6ec0692009009f5dca6827b21f59a': [M.pw], // JPN
+  // '8b346182730ceaffe5e2ccf6d223c5ef': [M.pw], // USA
   // Pokemon Puzzle League
   'afe4cc6f067852b96fec84cb739b4c99': [M.ppl], // USA
   '77a22697ba18ec59018f0c8b5f16c656': [M.ppl], // GER
