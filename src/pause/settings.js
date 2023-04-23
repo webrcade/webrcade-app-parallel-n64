@@ -2,6 +2,7 @@ import React from 'react';
 import { Component } from 'react';
 
 import {
+  // AppDisplaySettingsTab,
   EditorScreen,
   FieldsTab,
   FieldRow,
@@ -9,6 +10,7 @@ import {
   FieldControl,
   SettingsAppWhiteImage,
   Switch,
+  // TelevisionWhiteImage,
   WebrcadeContext,
 } from '@webrcade/app-common';
 
@@ -28,6 +30,8 @@ export class N64SettingsEditor extends Component {
 
     this.setState({
       values: {
+        // origBilinearMode: emulator.getPrefs().isBilinearEnabled(),
+        // bilinearMode: emulator.getPrefs().isBilinearEnabled(),
         vboEnabled: prefs.isVboEnabled(),
       },
     });
@@ -51,6 +55,11 @@ export class N64SettingsEditor extends Component {
         showCancel={true}
         onOk={() => {
           prefs.setVboEnabled(values.vboEnabled);
+          // if (values.origBilinearMode !== values.bilinearMode) {
+          //   emulator.getPrefs().setBilinearEnabled(values.bilinearMode);
+          //   emulator.updateBilinearFilter();
+          //   emulator.getPrefs().save();
+          // }
           prefs.save().finally(() => {
             onClose();
           });
@@ -72,6 +81,19 @@ export class N64SettingsEditor extends Component {
               />
             ),
           },
+          // {
+          //   image: TelevisionWhiteImage,
+          //   label: 'Display Settings',
+          //   content: (
+          //     <AppDisplaySettingsTab
+          //       emulator={emulator}
+          //       isActive={tabIndex === 1}
+          //       setFocusGridComps={setFocusGridComps}
+          //       values={values}
+          //       setValues={setValues}
+          //     />
+          //   ),
+          // },
         ]}
       />
     );

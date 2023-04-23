@@ -2,25 +2,25 @@ import {
   isIos,
   isMacOs,
   isTouchSupported,
-  BaseSettings,
+  AppPrefs
 } from '@webrcade/app-common';
 
-export class Prefs extends BaseSettings {
+export class Prefs extends AppPrefs {
   constructor(emu) {
-    super(emu.getStorage());
+    super(emu);
 
     this.emu = emu;
     const app = emu.getApp();
 
-    const PREFS_PREFIX = 'prefs';
-
-    this.vboPath = app.getStoragePath(`${PREFS_PREFIX}.vboEnabled`);
-    this.iosGpuPromptPath = app.getStoragePath(`${PREFS_PREFIX}.iosGpuPromptEnabled`);
+    this.vboPath = app.getStoragePath(`${this.PREFS_PREFIX}.vboEnabled`);
+    this.iosGpuPromptPath = app.getStoragePath(`${this.PREFS_PREFIX}.iosGpuPromptEnabled`);
     this.vboEnabled = true;
     this.iosGpuPromptEnabled = true;
   }
 
   async load() {
+    super.load();
+
     let enabled = await super.loadBool(this.vboPath, null);
     if (enabled === null) {
       enabled = !(isIos() || (isMacOs() && isTouchSupported()));
@@ -30,6 +30,8 @@ export class Prefs extends BaseSettings {
   }
 
   async save() {
+    super.save();
+
     await super.saveBool(this.vboPath, this.vboEnabled);
     await super.saveBool(this.iosGpuPromptPath, this.iosGpuPromptEnabled);
   }
