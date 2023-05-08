@@ -2,6 +2,7 @@ import React from 'react';
 import { Component } from 'react';
 
 import {
+  AppDisplaySettingsTab,
   EditorScreen,
   FieldsTab,
   FieldRow,
@@ -9,6 +10,7 @@ import {
   FieldControl,
   SettingsAppWhiteImage,
   Switch,
+  TelevisionWhiteImage,
   WebrcadeContext,
 } from '@webrcade/app-common';
 
@@ -28,6 +30,10 @@ export class N64SettingsEditor extends Component {
 
     this.setState({
       values: {
+        // origBilinearMode: emulator.getPrefs().isBilinearEnabled(),
+        // bilinearMode: emulator.getPrefs().isBilinearEnabled(),
+        origScreenSize: emulator.getPrefs().getScreenSize(),
+        screenSize: emulator.getPrefs().getScreenSize(),
         vboEnabled: prefs.isVboEnabled(),
       },
     });
@@ -51,6 +57,14 @@ export class N64SettingsEditor extends Component {
         showCancel={true}
         onOk={() => {
           prefs.setVboEnabled(values.vboEnabled);
+          // if (values.origBilinearMode !== values.bilinearMode) {
+          //   emulator.getPrefs().setBilinearEnabled(values.bilinearMode);
+          //   emulator.updateBilinearFilter();
+          // }
+          if (values.origScreenSize !== values.screenSize) {
+            emulator.getPrefs().setScreenSize(values.screenSize);
+            emulator.updateScreenSize();
+          }
           prefs.save().finally(() => {
             onClose();
           });
@@ -66,6 +80,20 @@ export class N64SettingsEditor extends Component {
               <N64SettingsTab
                 emulator={emulator}
                 isActive={tabIndex === 0}
+                setFocusGridComps={setFocusGridComps}
+                values={values}
+                setValues={setValues}
+              />
+            ),
+          },
+          {
+            image: TelevisionWhiteImage,
+            label: 'Display Settings',
+            content: (
+              <AppDisplaySettingsTab
+                hideBilinear={true}
+                emulator={emulator}
+                isActive={tabIndex === 1}
                 setFocusGridComps={setFocusGridComps}
                 values={values}
                 setValues={setValues}
