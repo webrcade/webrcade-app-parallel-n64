@@ -156,17 +156,26 @@ export class Emulator extends AppWrapper {
       if (parser.os.name.toLowerCase().includes("ios")) {
         const ver = parser.os.version.split(".");
         if (ver.length > 0) {
-          if (ver[0] >= 16) {
-            issue = true;
+          if (ver[0] === "16") {
+            if (ver.length > 1) {
+              try {
+                const sub = parseInt(ver[1]);
+                if (sub < 5) {
+                  issue = true;
+                }
+              } catch (e) {}
+            } else {
+              issue = true;
+            }
           }
         }
       }
 
       if (this.prefs.isIosGpuPromptEnabled() && issue) {
         this.app.yesNoPrompt({
-          header: 'iOS 16+ Performance Issue',
-          message: "A recent change in iOS 16 has significantly reduced N64 performance\n" +
-                   "Disable the following Safari experimental feature to undo this change:\n" +
+          header: 'Early iOS 16 Performance Issue',
+          message: "Early versions of iOS 16 significantly reduced N64 performance.\n" +
+                   "Upgrade to iOS 16.5+ or disable the following experimental feature:\n" +
                    "Settings > Safari > Advanced > Experimental Features > GPU Process: WebGL\n\n" +
                    "See 'https://docs.webrcade.com/apps/emulators/n64/' for additional information.",
           prompt: 'Do you wish to skip this message in the future?',
