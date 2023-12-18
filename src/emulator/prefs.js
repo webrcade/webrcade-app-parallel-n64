@@ -19,7 +19,7 @@ export class Prefs extends AppPrefs {
   }
 
   async load() {
-    super.load();
+    await super.load();
 
     let enabled = await super.loadBool(this.vboPath, null);
     if (enabled === null) {
@@ -30,7 +30,7 @@ export class Prefs extends AppPrefs {
   }
 
   async save() {
-    super.save();
+    await super.save();
 
     await super.saveBool(this.vboPath, this.vboEnabled);
     await super.saveBool(this.iosGpuPromptPath, this.iosGpuPromptEnabled);
