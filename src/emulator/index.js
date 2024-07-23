@@ -9,7 +9,7 @@ import {
   KeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
-  UAParser,
+  // UAParser,
   UrlUtil,
   md5,
   u8ArrayToStr,
@@ -150,38 +150,60 @@ export class Emulator extends AppWrapper {
     await this.prefs.load();
 
     return new Promise((resolve, reject) => {
-      const parser = UAParser();
+      // const parser = UAParser();
 
-      let issue = false;
-      if (parser.os.name.toLowerCase().includes("ios")) {
-        const ver = parser.os.version.split(".");
-        if (ver.length > 0) {
-          if (ver[0] === "16") {
-            if (ver.length > 1) {
-              try {
-                const sub = parseInt(ver[1]);
-                if (sub < 5) {
-                  issue = true;
-                }
-              } catch (e) {}
-            } else {
-              issue = true;
-            }
-          }
-        }
-      }
+      // let issue = false;
+      // if (parser.os.name.toLowerCase().includes("ios")) {
+      //   const ver = parser.os.version.split(".");
+      //   if (ver.length > 0) {
+      //     if (ver[0] === "16") {
+      //       if (ver.length > 1) {
+      //         try {
+      //           const sub = parseInt(ver[1]);
+      //           if (sub < 5) {
+      //             issue = true;
+      //           }
+      //         } catch (e) {}
+      //       } else {
+      //         issue = true;
+      //       }
+      //     }
+      //   }
+      // }
 
-      if (this.prefs.isIosGpuPromptEnabled() && issue) {
+      // if (this.prefs.isIosGpuPromptEnabled() && issue) {
+      //   this.app.yesNoPrompt({
+      //     header: 'Early iOS 16 Performance Issue',
+      //     message: "Early versions of iOS 16 significantly reduced N64 performance.\n" +
+      //              "Upgrade to iOS 16.5+ or disable the following experimental feature:\n" +
+      //              "Settings > Safari > Advanced > Experimental Features > GPU Process: WebGL\n\n" +
+      //              "See 'https://docs.webrcade.com/apps/emulators/n64/' for additional information.",
+      //     prompt: 'Do you wish to skip this message in the future?',
+      //     onYes: (prompt) => {
+      //       prompt.close();
+      //       this.prefs.setIosGpuPromptEnabled(false);
+      //       this.prefs.save();
+      //       resolve();
+      //     },
+      //     onNo: (prompt) => {
+      //       prompt.close();
+      //       resolve();
+      //     },
+      //   });
+      // } else {
+      //   resolve();
+      // }
+
+      if (this.prefs.isVboPromptEnabled()) {
         this.app.yesNoPrompt({
-          header: 'Early iOS 16 Performance Issue',
-          message: "Early versions of iOS 16 significantly reduced N64 performance.\n" +
-                   "Upgrade to iOS 16.5+ or disable the following experimental feature:\n" +
-                   "Settings > Safari > Advanced > Experimental Features > GPU Process: WebGL\n\n" +
-                   "See 'https://docs.webrcade.com/apps/emulators/n64/' for additional information.",
+          header: 'Vertex Buffers',
+          message: "The Vertex Buffers setting can significantly impact N64 performance.\n" +
+                   "If you experience performance issues, try toggling the Vertex Buffer \n" +
+                   "setting (located within the N64 settings portion of the pause screen).",
           prompt: 'Do you wish to skip this message in the future?',
           onYes: (prompt) => {
             prompt.close();
-            this.prefs.setIosGpuPromptEnabled(false);
+            this.prefs.setVboPromptEnabled(false);
             this.prefs.save();
             resolve();
           },
