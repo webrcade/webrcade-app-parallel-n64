@@ -5,6 +5,8 @@ import {
   setMessageAnchorId,
   settings,
   AppRegistry,
+  AchievementToast,
+  GamePlacard,
   FetchAppData,
   Resources,
   Unzip,
@@ -166,6 +168,8 @@ class App extends WebrcadeApp {
         {mode === ModeEnum.LOADED || mode === ModeEnum.PAUSE
           ? this.renderCanvas()
           : null}
+        <AchievementToast />
+        <GamePlacard />
       </>
     );
   }

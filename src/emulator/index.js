@@ -16,6 +16,11 @@ import {
   CIDS,
   KCODES,
   LOG,
+  achievements,
+  showAchievement,
+  showMastery,
+  showGamePlacard,
+  settings,
 } from '@webrcade/app-common';
 
 import { getCompatibilityMessage } from './compat';
@@ -118,6 +123,7 @@ export class Emulator extends AppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
 
+    window.emulator = this;
     this.n64module = null;
     this.romBytes = null;
     this.romMd5 = null;
@@ -427,6 +433,12 @@ export class Emulator extends AppWrapper {
       this.audioProcessor.pause(true);
     }
     console.log('destroy end');
+  }
+
+  async raHttpRequest(reqId, url, postData) {
+    LOG.info(`[RA] HTTP req #${reqId} ${postData ? 'POST' : 'GET'} ${url}${postData ? ' data=' + postData : ''}`);
+    await achievements.httpRequest(this.n64module, reqId, url, postData);
+    LOG.info(`[RA] HTTP req #${reqId} complete`);
   }
 
   async migrateSaves() {
@@ -800,6 +812,26 @@ export class Emulator extends AppWrapper {
       // Load save state
       await this.loadState();
 
+      // Initialize RetroAchievements
+      if (settings.isRaEnabled() && achievements.isLoggedIn()) {
+        LOG.info('[RA] Initializing RetroAchievements, user=' + achievements.getUsername());
+        achievements.resetGameState();
+        achievements.setUnlockCallback((title, desc, badge) => {
+          showAchievement(title, desc, badge);
+        });
+        achievements.setMasteryCallback((gameTitle, gameBadgeName, totalCount, totalPoints, username, gameTags) => {
+          showMastery(gameTitle, gameBadgeName, totalCount, totalPoints, username, gameTags);
+        });
+        achievements.setGameLoadedCallback((gameTitle, gameBadgeName, unlockedCount, totalCount, unlockedPoints, totalPoints, gameTags) => {
+          showGamePlacard(gameTitle, gameBadgeName, unlockedCount, totalCount, unlockedPoints, totalPoints, gameTags);
+        });
+        n64module._EmCheevosInit();
+        n64module.ccall('EmCheevosLogin', null,
+          ['string', 'string'],
+          [achievements.getUsername(), achievements.getToken()]
+        );
+      }
+
       // Load the ROM
       const filename = 'custom.v64';
       let stream = FS.open(filename, 'a');
@@ -839,6 +871,11 @@ export class Emulator extends AppWrapper {
 
       // Start the emulator
       n64module.callMain([filename]);
+
+      // Trigger RA game load (hash computed in C before ROM buffer was freed)
+      if (settings.isRaEnabled() && achievements.isLoggedIn()) {
+        n64module._EmCheevosLoadGame("");
+      }
 
       // Determine PAL mode
       const isPal = pal ? true : n64module._isPalSystem() === 1;
@@ -912,6 +949,9 @@ export class Emulator extends AppWrapper {
       this.displayLoop.start(() => {
         this.pollControls();
         n64module._runMainLoop();
+        if (settings.isRaEnabled() && achievements.isLoggedIn()) {
+          n64module._EmCheevosFrame();
+        }
         try {
           if (first) {
             this.enableVbo(prefs.isVboEnabled());
