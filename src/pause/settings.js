@@ -34,6 +34,8 @@ export class N64SettingsEditor extends Component {
         // bilinearMode: emulator.getPrefs().isBilinearEnabled(),
         origScreenSize: emulator.getPrefs().getScreenSize(),
         screenSize: emulator.getPrefs().getScreenSize(),
+        origScreenControls: emulator.getPrefs().getScreenControls(),
+        screenControls: emulator.getPrefs().getScreenControls(),
         vboEnabled: prefs.isVboEnabled(),
       },
     });
@@ -65,6 +67,10 @@ export class N64SettingsEditor extends Component {
             emulator.getPrefs().setScreenSize(values.screenSize);
             emulator.updateScreenSize();
           }
+          if (values.origScreenControls !== values.screenControls) {
+            emulator.getPrefs().setScreenControls(values.screenControls);
+            emulator.updateOnScreenControls();
+          }
           prefs.save().finally(() => {
             onClose();
           });
@@ -92,6 +98,7 @@ export class N64SettingsEditor extends Component {
             content: (
               <AppDisplaySettingsTab
                 hideBilinear={true}
+                showOnScreenControls={true}
                 emulator={emulator}
                 isActive={tabIndex === 1}
                 setFocusGridComps={setFocusGridComps}

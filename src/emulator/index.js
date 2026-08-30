@@ -3,7 +3,7 @@ import {
   isIos,
   isMacOs,
   isTouchSupported,
-  AppWrapper,
+  BasicAppWrapper,
   Controller,
   Controllers,
   KeyCodeToControlMapping,
@@ -114,12 +114,21 @@ class N64KeyCodeToControlMapping2 extends KeyCodeToControlMapping {
       [KCODES.SHIFT_LEFT]: ANALOG_25, // Analog 25%
     });
   }
+
+  // This app maps both Control keys to Analog 50% and both Shift keys to
+  // Analog 25% above -- real gameplay modifiers. The shared Ctrl+Shift
+  // pause sequence collides with holding both together, so it's disabled
+  // for this app only. The literal Escape key (still mapped above) and
+  // the gamepad pause combo (SL+X, LT+LA) are unaffected.
+  isEscapeKeySequenceEnabled() {
+    return false;
+  }
 }
 
 
 window.audioCallback = null;
 
-export class Emulator extends AppWrapper {
+export class Emulator extends BasicAppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
 
@@ -287,6 +296,12 @@ export class Emulator extends AppWrapper {
       this.lastSound = Date.now();
     }
   }
+
+  // Base class default pauses on any tap anywhere on screen -- redundant
+  // (and disruptive) now that there's a dedicated Pause button in the
+  // touch overlay. Same override snes9x/fceux/Coleco/A5200/Jaguar use for
+  // the same reason.
+  createTouchListener() {}
 
   pollControls() {
     const { controllers, keyToControlMapping } = this;
@@ -948,6 +963,7 @@ export class Emulator extends AppWrapper {
       // Start the display loop
       this.displayLoop.start(() => {
         this.pollControls();
+        this.onFrame();
         n64module._runMainLoop();
         if (settings.isRaEnabled() && achievements.isLoggedIn()) {
           n64module._EmCheevosFrame();
