@@ -3,7 +3,7 @@ import {
   isIos,
   isMacOs,
   isTouchSupported,
-  AppWrapper,
+  BasicAppWrapper,
   Controller,
   Controllers,
   KeyCodeToControlMapping,
@@ -100,26 +100,35 @@ class N64KeyCodeToControlMapping2 extends KeyCodeToControlMapping {
       [KCODES.Z]: CIDS.X, // B Button
       [KCODES.X]: CIDS.A, // A button
       [KCODES.SPACE_BAR]: CIDS.RTRIG, // Z button
-      [KCODES.W]: C_UP, // D-pad (up)
-      [KCODES.A]: C_LEFT, // D-pad (left)
-      [KCODES.S]: C_DOWN, // D-pad (down)
-      [KCODES.D]: C_RIGHT, // D-pad (right)
-      [KCODES.I]: CIDS.UP, // C-pad (up)
-      [KCODES.J]: CIDS.LEFT, // C-pad (left)
-      [KCODES.K]: CIDS.DOWN, // C-pad (down)
-      [KCODES.L]: CIDS.RIGHT, // C-pad (right)
+      [KCODES.W]: C_UP, // C button (up)
+      [KCODES.A]: C_LEFT, // C button (left)
+      [KCODES.S]: C_DOWN, // C button (down)
+      [KCODES.D]: C_RIGHT, // C button (right)
+      [KCODES.I]: CIDS.UP, // D-pad (up)
+      [KCODES.J]: CIDS.LEFT, // D-pad (left)
+      [KCODES.K]: CIDS.DOWN, // D-pad (down)
+      [KCODES.L]: CIDS.RIGHT, // D-pad (right)
       [KCODES.CONTROL_RIGHT]: ANALOG_50, // Analog 50%
       [KCODES.CONTROL_LEFT]: ANALOG_50, // Analog 50%
       [KCODES.SHIFT_RIGHT]: ANALOG_25, // Analog 25%
       [KCODES.SHIFT_LEFT]: ANALOG_25, // Analog 25%
     });
   }
+
+  // This app maps both Control keys to Analog 50% and both Shift keys to
+  // Analog 25% above -- real gameplay modifiers. The shared Ctrl+Shift
+  // pause sequence collides with holding both together, so it's disabled
+  // for this app only. The literal Escape key (still mapped above) and
+  // the gamepad pause combo (SL+X, LT+LA) are unaffected.
+  isEscapeKeySequenceEnabled() {
+    return false;
+  }
 }
 
 
 window.audioCallback = null;
 
-export class Emulator extends AppWrapper {
+export class Emulator extends BasicAppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
 
@@ -288,13 +297,28 @@ export class Emulator extends AppWrapper {
     }
   }
 
+  // Base class default pauses on any tap anywhere on screen -- redundant
+  // (and disruptive) now that there's a dedicated Pause button in the
+  // touch overlay. Same override snes9x/fceux/Coleco/A5200/Jaguar use for
+  // the same reason.
+  createTouchListener() {}
+
   pollControls() {
     const { controllers, keyToControlMapping } = this;
 
     controllers.poll();
 
+    // WRC (2026-09-12): N64's Z button is real and commonly held for
+    // extended periods (mapped to both LTRIG and RTRIG below), so both
+    // the LT+LA (Escape) and RT+RA (Start) combos need hold-timer
+    // protection - see retro-mupen64plus-next's isEscapeHackEnabled()/
+    // isStartEscapeHackEnabled() comments for the full reasoning (this
+    // app is BasicAppWrapper-based, not RetroAppWrapper, so it doesn't
+    // have those getters - both hacks are just always-on here, same
+    // effect). RTRIG now watched too, since Start's protection needs it.
     if (
       controllers.isControlDown(0, CIDS.LTRIG) ||
+      controllers.isControlDown(0, CIDS.RTRIG) ||
       controllers.isControlDown(0, CIDS.LANALOG) ||
       controllers.isControlDown(0, CIDS.RANALOG)
     ) {
@@ -308,10 +332,12 @@ export class Emulator extends AppWrapper {
       let axisX = 0;
       let axisY = 0;
 
+      const escapeHackOk = (this.escapeCount === -1 || this.escapeCount < 60);
+
       // Hack to reduce likelihood of accidentally bringing up menu
       if (
         controllers.isControlDown(0 /*i*/, CIDS.ESCAPE) &&
-        (this.escapeCount === -1 || this.escapeCount < 60)
+        escapeHackOk
       ) {
         if (this.pause(true)) {
           controllers
@@ -330,7 +356,7 @@ export class Emulator extends AppWrapper {
       } else if (controllers.isControlDown(i, CIDS.LEFT, false)) {
         input |= LEFT;
       }
-      if (controllers.isControlDown(i, CIDS.START)) {
+      if (controllers.isControlDown(i, CIDS.START) && escapeHackOk) {
         input |= START;
       }
       if (controllers.isControlDown(i, CIDS.A)) {
@@ -948,6 +974,7 @@ export class Emulator extends AppWrapper {
       // Start the display loop
       this.displayLoop.start(() => {
         this.pollControls();
+        this.onFrame();
         n64module._runMainLoop();
         if (settings.isRaEnabled() && achievements.isLoggedIn()) {
           n64module._EmCheevosFrame();
